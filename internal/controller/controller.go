@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"trafficlab/internal/browser"
 	"trafficlab/internal/config"
 	"trafficlab/internal/engine"
 	"trafficlab/internal/httpclient"
@@ -21,6 +22,10 @@ func Run(ctx context.Context, cfg config.Config) (Result, error) {
 		return Result{}, fmt.Errorf("validate config: %w", err)
 	}
 	start := time.Now()
+	if cfg.Mode == "browser" {
+		snapshot, err := browser.Run(ctx, cfg)
+		return Result{Metrics: snapshot, Elapsed: time.Since(start)}, err
+	}
 	client := httpclient.New(30 * time.Second)
 	snapshot := engine.New(client).Run(ctx, cfg)
 	return Result{Metrics: snapshot, Elapsed: time.Since(start)}, nil

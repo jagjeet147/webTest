@@ -11,22 +11,30 @@ import (
 )
 
 type Config struct {
+	Mode        string        `yaml:"mode"`
 	URL         string        `yaml:"url"`
 	Method      string        `yaml:"method"`
 	RPS         float64       `yaml:"rps"`
 	Duration    time.Duration `yaml:"duration"`
 	Concurrency int           `yaml:"concurrency"`
 	Body        string        `yaml:"body,omitempty"`
+	ProxyFile   string        `yaml:"proxy_file,omitempty"`
+	Scrolls     int           `yaml:"scrolls,omitempty"`
+	Headless    bool          `yaml:"headless"`
 }
 
 func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	var raw struct {
+		Mode        string  `yaml:"mode"`
 		URL         string  `yaml:"url"`
 		Method      string  `yaml:"method"`
 		RPS         float64 `yaml:"rps"`
 		Duration    string  `yaml:"duration"`
 		Concurrency int     `yaml:"concurrency"`
 		Body        string  `yaml:"body,omitempty"`
+		ProxyFile   string  `yaml:"proxy_file,omitempty"`
+		Scrolls     int     `yaml:"scrolls,omitempty"`
+		Headless    *bool   `yaml:"headless"`
 	}
 	if err := value.Decode(&raw); err != nil {
 		return err
@@ -35,7 +43,15 @@ func (c *Config) UnmarshalYAML(value *yaml.Node) error {
 	if err != nil {
 		return fmt.Errorf("parse duration: %w", err)
 	}
-	*c = Config{URL: raw.URL, Method: raw.Method, RPS: raw.RPS, Duration: duration, Concurrency: raw.Concurrency, Body: raw.Body}
+	mode := raw.Mode
+	if mode == "" {
+		mode = "http"
+	}
+	headless := true
+	if raw.Headless != nil {
+		headless = *raw.Headless
+	}
+	*c = Config{Mode: mode, URL: raw.URL, Method: raw.Method, RPS: raw.RPS, Duration: duration, Concurrency: raw.Concurrency, Body: raw.Body, ProxyFile: raw.ProxyFile, Scrolls: raw.Scrolls, Headless: headless}
 	return nil
 }
 
@@ -52,6 +68,9 @@ func Load(path string) (Config, error) {
 }
 
 func (c Config) Validate() error {
+	if c.Mode != "http" && c.Mode != "browser" {
+		return fmt.Errorf("mode must be http or browser")
+	}
 	parsedURL, err := url.ParseRequestURI(c.URL)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return fmt.Errorf("url must be an absolute HTTP(S) URL")
@@ -70,6 +89,9 @@ func (c Config) Validate() error {
 	}
 	if c.Concurrency <= 0 {
 		return fmt.Errorf("concurrency must be greater than zero")
+	}
+	if c.Mode == "browser" && c.Scrolls < 0 {
+		return fmt.Errorf("scrolls cannot be negative")
 	}
 	return nil
 }

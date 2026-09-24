@@ -36,12 +36,16 @@ func main() {
 func run(args []string) error {
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
 	flags.SetOutput(os.Stderr)
+	mode := flags.String("mode", "http", "traffic mode: http or browser")
 	url := flags.String("url", "", "target URL")
 	method := flags.String("method", "GET", "HTTP method")
 	rps := flags.Float64("rps", 1, "target requests per second")
 	duration := flags.Duration("duration", 30*time.Second, "test duration")
 	concurrency := flags.Int("concurrency", 1, "maximum concurrent workers")
 	body := flags.String("body", "", "request body")
+	proxyFile := flags.String("proxy-file", "", "file containing one proxy URL per line")
+	scrolls := flags.Int("scrolls", 3, "browser scroll cycles")
+	headless := flags.Bool("headless", true, "run browser mode without visible windows")
 	configPath := flags.String("config", "", "optional YAML configuration file")
 
 	if err := flags.Parse(args); err != nil {
@@ -49,12 +53,16 @@ func run(args []string) error {
 	}
 
 	settings := config.Config{
+		Mode:        *mode,
 		URL:         *url,
 		Method:      *method,
 		RPS:         *rps,
 		Duration:    *duration,
 		Concurrency: *concurrency,
 		Body:        *body,
+		ProxyFile:   *proxyFile,
+		Scrolls:     *scrolls,
+		Headless:    *headless,
 	}
 	if *configPath != "" {
 		loaded, err := config.Load(*configPath)
@@ -83,12 +91,16 @@ func printUsage() {
 	fmt.Println("  trafficlab run --url URL [flags]")
 	fmt.Println("\nRun flags:")
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
+	flags.String("mode", "http", "traffic mode: http or browser")
 	flags.String("url", "", "target URL")
 	flags.String("method", "GET", "HTTP method")
 	flags.Float64("rps", 1, "target requests per second")
 	flags.Duration("duration", 30*time.Second, "test duration")
 	flags.Int("concurrency", 1, "maximum concurrent workers")
 	flags.String("body", "", "request body")
+	flags.String("proxy-file", "", "file containing one proxy URL per line")
+	flags.Int("scrolls", 3, "browser scroll cycles")
+	flags.Bool("headless", true, "run browser mode without visible windows")
 	flags.String("config", "", "optional YAML configuration file")
 	flags.PrintDefaults()
 }
